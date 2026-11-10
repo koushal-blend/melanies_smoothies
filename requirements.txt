@@ -1,4 +1,2 @@
-streamlit
-snowflake-snowpark-python
 streamlit[snowflake]
 requests
