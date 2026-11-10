@@ -1,2 +1,3 @@
 streamlit[snowflake]
 requests
+pandas

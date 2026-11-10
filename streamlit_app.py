@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 import requests
 from snowflake.snowpark.functions import col
 
@@ -18,11 +19,13 @@ session = cnx.session()
 
 my_dataframe = session.table(
     "SMOOTHIES.PUBLIC.FRUIT_OPTIONS"
-).select(col("FRUIT_NAME"))
+).select(
+    col("FRUIT_NAME"),
+    col("SEARCH_ON"),
+)
 
-fruit_options = [
-    row["FRUIT_NAME"] for row in my_dataframe.collect()
-]
+pd_df = my_dataframe.to_pandas()
+fruit_options = pd_df["FRUIT_NAME"].tolist()
 
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
@@ -35,6 +38,30 @@ if ingredients_list:
 
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
+
+        search_on = pd_df.loc[
+            pd_df["FRUIT_NAME"] == fruit_chosen,
+            "SEARCH_ON",
+        ].iloc[0]
+
+        st.write(
+            "The search value for ",
+            fruit_chosen,
+            " is ",
+            search_on,
+            ".",
+        )
+
+        st.subheader(f"{fruit_chosen} Nutrition Information")
+
+        smoothiefroot_response = requests.get(
+            f"https://my.smoothiefroot.com/api/fruit/{search_on}"
+        )
+
+        sf_df = st.dataframe(
+            data=smoothiefroot_response.json(),
+            use_container_width=True,
+        )
 
     my_insert_stmt = f"""
         INSERT INTO SMOOTHIES.PUBLIC.ORDERS
@@ -50,16 +77,3 @@ if ingredients_list:
             f"Your Smoothie is ordered, {name_on_order}!",
             icon="✅",
         )
-
-# SmoothieFroot API data
-smoothiefroot_response = requests.get(
-    "https://my.smoothiefroot.com/api/fruit/watermelon"
-)
-
-st.text(smoothiefroot_response)
-st.text(smoothiefroot_response.json())
-
-sf_df = st.dataframe(
-    data=smoothiefroot_response.json(),
-    use_container_width=True,
-)
