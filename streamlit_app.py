@@ -1,4 +1,5 @@
 import streamlit as st
+import requests
 from snowflake.snowpark.functions import col
 
 st.set_page_config(
@@ -19,7 +20,9 @@ my_dataframe = session.table(
     "SMOOTHIES.PUBLIC.FRUIT_OPTIONS"
 ).select(col("FRUIT_NAME"))
 
-fruit_options = [row["FRUIT_NAME"] for row in my_dataframe.collect()]
+fruit_options = [
+    row["FRUIT_NAME"] for row in my_dataframe.collect()
+]
 
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
@@ -42,7 +45,21 @@ if ingredients_list:
 
     if st.button("Submit Order"):
         session.sql(my_insert_stmt).collect()
+
         st.success(
             f"Your Smoothie is ordered, {name_on_order}!",
             icon="✅",
         )
+
+# SmoothieFroot API data
+smoothiefroot_response = requests.get(
+    "https://my.smoothiefroot.com/api/fruit/watermelon"
+)
+
+st.text(smoothiefroot_response)
+st.text(smoothiefroot_response.json())
+
+sf_df = st.dataframe(
+    data=smoothiefroot_response.json(),
+    use_container_width=True,
+)
